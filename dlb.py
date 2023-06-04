@@ -30,6 +30,14 @@ def check_args():
     return  num_args
 
 
+# Função que escreve a saída em um arquivo específico.
+def pipe_to(dest, orig):
+    with open(dest, 'w') as dest_file:
+        csv_writer = csv.writer(dest_file)
+        for row in orig:
+            csv_writer.writerow([row])
+
+
 def main():
     try:
         num_args = check_args()
