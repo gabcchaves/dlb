@@ -8,45 +8,52 @@ import sys, re, csv
 
 # Função de busca de ocorrências de citações de leis.
 def scan(csv_data):
-    legal_devices = [
-        'CC', 'CPC', 'CP', 'CPP', 'CTN', 'CLT', 'CDC', 'CTB',
-        'CE', 'CF', 'CA', 'CM', 'CPM', 'CPPM', 'CBA', 'CBT',
-        'Código Civil', 'Código de Processo Civil', 'Código de Processo',
-        'Código de Processo Penal', 'Código Tributário Nacional',
-        'Consolidação das Leis do Trabalho', 'Código de Defesa do Consumidor',
-        'Código de Trânsito Brasileiro', 'Código Eleitoral', 'Código Florestal',
-        'Código de Águas', 'Código de Minas', 'Código Penal Militar',
-        'Código de Processo Penal Militar', 'Código Brasileiro de Aeronáutica',
-        'Código Brasileiro de Telecomunicações', 'Código Comercial'
-    ]
+    #legal_devices = [
+    #    'CC', 'CPC', 'CP', 'CPP', 'CTN', 'CLT', 'CDC', 'CTB',
+    #    'CE', 'CF', 'CA', 'CM', 'CPM', 'CPPM', 'CBA', 'CBT',
+    #    'Código Civil', 'Código de Processo Civil', 'Código de Processo',
+    #    'Código de Processo Penal', 'Código Tributário Nacional',
+    #    'Consolidação das Leis do Trabalho', 'Código de Defesa do Consumidor',
+    #    'Código de Trânsito Brasileiro', 'Código Eleitoral', 'Código Florestal',
+    #    'Código de Águas', 'Código de Minas', 'Código Penal Militar',
+    #    'Código de Processo Penal Militar', 'Código Brasileiro de Aeronáutica',
+    #    'Código Brasileiro de Telecomunicações', 'Código Comercial'
+    #]
     p = {
-        'law': r'((nº)|(n.))?\s+\d+(\.+\d)?\/\d\d(\d\d)?',
-        'article': r'((artigos?)|(arts?\.))\s+',
-        'paragraph': r'§\s+((((\w)+|\d+º|\d+),\s+)+((\w)+|\d+º|\d+)\s+e\s+((\w)+|\d+º|\d+)|((\w)+|\d+º|\d+))',
-        'item': r'((incisos?)|(inc\.))\s+( (\w+)|(\w+\,\s+)+(\w+)\s+e\s+(\w+))'
+        'art': r'((arts\.|artigos)?\s+(\dº|\d\d+)((,\s+(\dº|\d\d+))*\s+e\s+(\dº|\d\d+))?|(art\.|artigo)?\s+(\dº|\d\d+))',
+        'par': r'(§§\s+(\dº|\d\d+)((,\s+(\dº|\d\d+))*\s+e\s+(\dº|\d\d+))?|§\s+(\dº|\d\d+))',
+        'inc': r'((incs\.|incisos)?\s*(((?<!\w)(I|II|III)(?!\w)|(?<!\w)(IV|V|VI|VII|VIII|IX|X)(?!\w))|\d\d+)(,\s+(((?<!\w)(I|II|III)(?!\w)|(?<!\w)(IV|V|VI|VII|VIII|IX|X)(?!\w))|\d\d+))*\s+e\s+(((?<!\w)(I|II|III)(?!\w)|(?<!\w)(IV|V|VI|VII|VIII|IX|X)(?!\w))|\d\d+)|(inc.|inciso)?\s*(((?<!\w)(I|II|III)(?!\w)|(?<!\w)(IV|V|VI|VII|VIII|IX|X)(?!\w))|\d\d+))',
+        'ali': r'([a-z](,\s+[a-z](?!\w))*)',
+        'ite': r'((da|do)\s+(Lei(\s+(n\.nº))?\s+\d+(\.\d{3})?\/(\d\d){1,2}))',
     }
-    ws = r'\s+'
-    c_ws = '\s+,\s+'
-    grammar = [
-        '(Lei|lei)\s+' + p['law'],
-        p['article'] + c_ws + p['item'] + c_ws + p['paragraph'] + r'\s+(da|do)\s+',
-        p['article'] + c_ws + 'caput\s+(da|do)',
-        p['paragraph'] + c_ws + p['article'] + c_ws + '(da|do)\s+',
-    ]
 
-    #output_ocurrences = []
+    output_ocurrences = []
     count = 0
+
+    ld = r'((da|do)\s+((lei\s+(n\.|nº)?\s+\d+(\.\d{3})?\/(\d\d){1,2})?)|(([A-Z]{1,}|[A-Z][a-z]+)(\s+[A-Z][a-z]+)?))?'
+    pattern = r'((arts\.|artigos)?\s+(\dº|\d\d+)((,\s+(\dº|\d\d+))*\s+e\s+(\dº|\d\d+))?|(art\.|artigo)?\s+(\dº|\d\d+)), (§§\s+(\dº|\d\d+)((,\s+(\dº|\d\d+))*\s+e\s+(\dº|\d\d+))?|§\s+(\dº|\d\d+)), ((incs\.|incisos)?\s*(((?<!\w)(I|II|III)(?!\w)|(?<!\w)(IV|V|VI|VII|VIII|IX|X)(?!\w))|\d\d+)(,\s+(((?<!\w)(I|II|III)(?!\w)|(?<!\w)(IV|V|VI|VII|VIII|IX|X)(?!\w))|\d\d+))*\s+e\s+(((?<!\w)(I|II|III)(?!\w)|(?<!\w)(IV|V|VI|VII|VIII|IX|X)(?!\w))|\d\d+)|(inc.|inciso)?\s*(((?<!\w)(I|II|III)(?!\w)|(?<!\w)(IV|V|VI|VII|VIII|IX|X)(?!\w))|\d\d+)), ([a-z](,\s+[a-z](?!\w))*), ((da|do)\s+(Lei(\s+(n\.nº))?\s+\d+(\.\d{3})?\/(\d\d){1,2}))'
 
     for row in csv_data:
         string = ' '.join(row[1:])
-        for rule in grammar:
-            if re.search(rule, string):
-                print('\n\n' + rule)
-                m = re.findall(re.compile(rule, re.IGNORECASE), string)
+        count += search_patterns(string, p)
 
     print(count)
     
     #return output_ocurrences
+
+def search_patterns(string, p):
+    count = 0
+    ld = r'((da|do)\s+((lei\s+(n\.|nº)?\s+\d+(\.\d{3})?\/(\d\d){1,2})?)|(([A-Z]{1,}|[A-Z][a-z]+)(\s+[A-Z][a-z]+)?))?'
+
+    pattern_construct = ''
+    for e in p:
+        pattern_construct += p[e] + r', '
+        if re.search(pattern_construct, string):
+            for x in re.finditer(pattern_construct, string):
+                print(x[0])
+            count += 1
+
+    return count
 
 
 # Procedimento de verificação de argumentos passados ao programa.
