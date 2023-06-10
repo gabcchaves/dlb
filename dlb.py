@@ -3,57 +3,48 @@
 # específica. Caso nenhuma saída seja especificada, a saída padrão será usada
 # (STDOUT).
 
-import sys, re, csv
+import sys, re, csv, unidecode
 
 
 # Função de busca de ocorrências de citações de leis.
 def scan(csv_data):
-    #legal_devices = [
-    #    'CC', 'CPC', 'CP', 'CPP', 'CTN', 'CLT', 'CDC', 'CTB',
-    #    'CE', 'CF', 'CA', 'CM', 'CPM', 'CPPM', 'CBA', 'CBT',
-    #    'Código Civil', 'Código de Processo Civil', 'Código de Processo',
-    #    'Código de Processo Penal', 'Código Tributário Nacional',
-    #    'Consolidação das Leis do Trabalho', 'Código de Defesa do Consumidor',
-    #    'Código de Trânsito Brasileiro', 'Código Eleitoral', 'Código Florestal',
-    #    'Código de Águas', 'Código de Minas', 'Código Penal Militar',
-    #    'Código de Processo Penal Militar', 'Código Brasileiro de Aeronáutica',
-    #    'Código Brasileiro de Telecomunicações', 'Código Comercial'
-    #]
     p = {
-        'art': r'((arts\.|artigos)?\s+(\dº|\d\d+)((,\s+(\dº|\d\d+))*\s+e\s+(\dº|\d\d+))?|(art\.|artigo)?\s+(\dº|\d\d+))',
-        'par': r'(§§\s+(\dº|\d\d+)((,\s+(\dº|\d\d+))*\s+e\s+(\dº|\d\d+))?|§\s+(\dº|\d\d+))',
-        'inc': r'((incs\.|incisos)?\s*(((?<!\w)(I|II|III)(?!\w)|(?<!\w)(IV|V|VI|VII|VIII|IX|X)(?!\w))|\d\d+)(,\s+(((?<!\w)(I|II|III)(?!\w)|(?<!\w)(IV|V|VI|VII|VIII|IX|X)(?!\w))|\d\d+))*\s+e\s+(((?<!\w)(I|II|III)(?!\w)|(?<!\w)(IV|V|VI|VII|VIII|IX|X)(?!\w))|\d\d+)|(inc.|inciso)?\s*(((?<!\w)(I|II|III)(?!\w)|(?<!\w)(IV|V|VI|VII|VIII|IX|X)(?!\w))|\d\d+))',
-        'ali': r'([a-z](,\s+[a-z](?!\w))*)',
-        'ite': r'((da|do)\s+(Lei(\s+(n\.nº))?\s+\d+(\.\d{3})?\/(\d\d){1,2}))',
+        'art': r'((artigos?|arts?\.)\s+((\dº|\d\d+)((,\s+(\dº|\d\d+))*\s+e\s+(\dº|\d\d+))?))?',
+        'par': r'(§§\s+(\dº|\d\d+)((,\s+(\dº|\d\d+))*\s+e\s+(\dº|\d\d+))|§\s+(\dº|\d\d+))?',
+        'inc': r'((incs\.|incisos)?\s*(((?<!\w)(I|II|III)(?!\w)|(?<!\w)(IV|V|VI|VII|VIII|IX|X)(?!\w))|\d\d+)(,\s+(((?<!\w)(I|II|III)(?!\w)|(?<!\w)(IV|V|VI|VII|VIII|IX|X)(?!\w))|\d\d+))*\s+e\s+(((?<!\w)(I|II|III)(?!\w)|(?<!\w)(IV|V|VI|VII|VIII|IX|X)(?!\w))|\d\d+)|(inc.|inciso)?\s*(((?<!\w)(I|II|III)(?!\w)|(?<!\w)(IV|V|VI|VII|VIII|IX|X)(?!\w))|\d\d+))?',
+        'ali': r'([a-z],((\s+[a-z],)*\s+e\s+[a-z],)?)?',
+        'ite': r'(\d+, (\d+\s+e\s+\d+))?',
+        'disp': r'((da|do)\s+(((Lei(\s+(n\.nº))?\s+\d+(\.\d{3})?\/(\d\d){1,2}))|([A-Z][a-z]+(\s+[a-z]+)?(\s+[A-Z][a-z]+)*|[A-Z]+)))',
+        'sep1': r'(,\s+)?',
+        'sep2': r'(,?\s+)?',
     }
 
-    output_ocurrences = []
-    count = 0
-
-    ld = r'((da|do)\s+((lei\s+(n\.|nº)?\s+\d+(\.\d{3})?\/(\d\d){1,2})?)|(([A-Z]{1,}|[A-Z][a-z]+)(\s+[A-Z][a-z]+)?))?'
-    pattern = r'((arts\.|artigos)?\s+(\dº|\d\d+)((,\s+(\dº|\d\d+))*\s+e\s+(\dº|\d\d+))?|(art\.|artigo)?\s+(\dº|\d\d+)), (§§\s+(\dº|\d\d+)((,\s+(\dº|\d\d+))*\s+e\s+(\dº|\d\d+))?|§\s+(\dº|\d\d+)), ((incs\.|incisos)?\s*(((?<!\w)(I|II|III)(?!\w)|(?<!\w)(IV|V|VI|VII|VIII|IX|X)(?!\w))|\d\d+)(,\s+(((?<!\w)(I|II|III)(?!\w)|(?<!\w)(IV|V|VI|VII|VIII|IX|X)(?!\w))|\d\d+))*\s+e\s+(((?<!\w)(I|II|III)(?!\w)|(?<!\w)(IV|V|VI|VII|VIII|IX|X)(?!\w))|\d\d+)|(inc.|inciso)?\s*(((?<!\w)(I|II|III)(?!\w)|(?<!\w)(IV|V|VI|VII|VIII|IX|X)(?!\w))|\d\d+)), ([a-z](,\s+[a-z](?!\w))*), ((da|do)\s+(Lei(\s+(n\.nº))?\s+\d+(\.\d{3})?\/(\d\d){1,2}))'
-
+    row_matches = []
     for row in csv_data:
         string = ' '.join(row[1:])
-        count += search_patterns(string, p)
+        no_diacritics = unidecode.unidecode(string)
+        no_diacritics = re.sub(r"(\d)o", r"\1º", no_diacritics)
+        row_matches.append((row[0], search_patterns(no_diacritics, p)))
 
-    print(count)
-    
-    #return output_ocurrences
+    del row_matches[0]
+
+    return row_matches
 
 def search_patterns(string, p):
     count = 0
-    ld = r'((da|do)\s+((lei\s+(n\.|nº)?\s+\d+(\.\d{3})?\/(\d\d){1,2})?)|(([A-Z]{1,}|[A-Z][a-z]+)(\s+[A-Z][a-z]+)?))?'
+    matches = []
 
-    pattern_construct = ''
-    for e in p:
-        pattern_construct += p[e] + r', '
-        if re.search(pattern_construct, string):
-            for x in re.finditer(pattern_construct, string):
-                print(x[0])
+    # Ordem decrescente, do geral ao particular.
+    pattern1 = p['art'] + p['sep1'] + p['par'] + p['sep1'] + p['inc'] + p['sep1'] + p['ali'] + p['sep1'] + p['ite'] + p['sep2'] + p['disp']
+    pattern = r'((artigos?|arts?\.)?\s+((\dº|\d\d+)((,\s+(\dº|\d\d+))*\s+e\s+(\dº|\d\d+))?)(,\s+|\s+e\s+)?(,\s+|\s+e\s+)?((§§\s+(\dº|\d\d+)((,\s+(\dº|\d\d+))*\s+e\s+(\dº|\d\d+))?|§\s+(\dº|\d\d+))?(,\s+))*(((incs\.|incisos)?\s*(((?<!\w)(I|II|III)(?!\w)|(?<!\w)(IV|V|VI|VII|VIII|IX|X)(?!\w))|\d\d+)(,\s+(((?<!\w)(I|II|III)(?!\w)|(?<!\w)(IV|V|VI|VII|VIII|IX|X)(?!\w))|\d\d+))*\s+e\s+(((?<!\w)(I|II|III)(?!\w)|(?<!\w)(IV|V|VI|VII|VIII|IX|X)(?!\w))|\d\d+)|(inc.|inciso)?\s*(((?<!\w)(I|II|III)(?!\w)|(?<!\w)(IV|V|VI|VII|VIII|IX|X)(?!\w))|\d\d+))?(,\s+)?)*e?)([a-z],(\s+[a-z],)*)?((,?\s+)?(da|do)\s+(((Lei(\s+(n\.nº))?\s+\d+(\.\d{3})?\/(\d\d){1,2}))|([A-Z][a-z]+(\s+[a-z]+)?(\s+[A-Z][a-z]+)*|[A-Z]+)))?'
+
+    if re.search(pattern, string):
+        m = re.finditer(pattern, string)
+        for i in m:
+            matches.append(i.group(0))
             count += 1
 
-    return count
+    return (count, matches)
 
 
 # Procedimento de verificação de argumentos passados ao programa.
@@ -80,18 +71,20 @@ def pipe_to(dest, orig):
 
 def main():
     try:
+        results = []
+        with open(sys.argv[1], 'r') as input_data:
+            csv_data = csv.reader(input_data, delimiter=' ', quotechar='|')
+            results = scan(csv_data)
+
         num_args = check_args()
         if num_args == 2:
-            with open(sys.argv[1], 'r') as input_data:
-                csv_data = csv.reader(input_data, delimiter=' ', quotechar='|')
-                scan(csv_data)
-            #print('2')
+            for x in results:
+                print(x)
         else:
-            with open(sys.argv[1], 'r') as input_data:
-                csv_data = csv.reader(input_data, delimiter=' ', quotechar='|')
-                scan(csv_data)
-            #print('3')
-            #scan('hi')
+            with open(sys.argv[2], 'w') as output_file:
+                csv_writer = csv.writer(output_file, delimiter=',')
+                for x in results:
+                    csv_writer.writerow(x)
     except Exception as err:
         print(err)
 
